@@ -1,6 +1,7 @@
 #include <poll.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/poll.h>
 #include <sys/socket.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -54,9 +55,6 @@ void add_con(struct chatroom * cr, int fd) {
     cr->fds[cr->fds_len].fd = fd; 
     cr->fds[cr->fds_len].events = POLLIN; 
     cr->fds_len += 1;
-    printf("before: \n");
-    print_chatroom(*cr);
-    printf("after: \n");
 }
 
 void remove_con(struct chatroom * cr, int fd) {
@@ -73,19 +71,20 @@ void remove_con(struct chatroom * cr, int fd) {
 // will also accept any new connections to the listenr
 int receive_conns_spread_msgs(struct chatroom * cr, int listener) {
     printf("function start\n");
-    int evented_count = poll(cr->fds, cr->fds_len, -1);
-    printf("evented: %d\n", evented_count);
+    printf("start room:\n");
+    print_chatroom(*cr);
+    int evented_count = poll(cr->fds, cr->fds_len, 1500); // 1500 ms
+    printf("%d sockets have events\n", evented_count);
     if (evented_count == -1) {
         return 1;     
     }
     
     for (int i = 0; i < cr->fds_len; i++) {
-        printf("cr->fds[i]: %d\n", cr->fds[i].fd);
-        if (cr->fds[i].events & POLLIN) { // if has event
-            printf("has event\n");
+        if (cr->fds[i].revents & POLLIN) { // if has event
+            printf("%d, has event\n", cr->fds[i].fd);
             if (cr->fds[i].fd == listener) {
-                // accept any new connections
                 printf("is listener\n");
+                // accept any new connections
                 struct sockaddr new_con;
                 socklen_t new_c_size = sizeof new_con;
 
@@ -95,18 +94,20 @@ int receive_conns_spread_msgs(struct chatroom * cr, int listener) {
                     perror("failed to accept");
                 } else {
                     add_con(cr, new_fd);
-                    printf("new connection from %d", new_fd);
+                    printf("new connection from %d\n", new_fd);
                 }
                 continue;
             }
             // any connections 
-            printf("isnt listener\n");
             char msg_buf[200];
+            printf("locked?1\n");
             int received_bytes = recv(cr->fds[i].fd, msg_buf, sizeof msg_buf, 0);            
+            printf("locked?2\n");
+
+            printf("received %d bytes from socket  %d mesage is: %s\n", received_bytes, cr->fds[i].fd, msg_buf);
 
             if (received_bytes <= 0) {
                 if (received_bytes == 0) {
-                    printf("socket %d hung up\n", cr->fds[i].fd);
                 } else {
                     perror("recv");
                 }
@@ -116,8 +117,7 @@ int receive_conns_spread_msgs(struct chatroom * cr, int listener) {
             } 
             
             for (int j = 0; j < cr->fds_len; j++) {
-                printf("cr->fds[j]: %d\n", cr->fds[j].fd);
-                if (cr->fds[j].fd == cr->fds[i].fd || cr->fds[j].fd == listener) {printf("invalid\n");continue;};
+                if (cr->fds[j].fd == cr->fds[i].fd || cr->fds[j].fd == listener) {continue;};
                 if (send(cr->fds[j].fd, msg_buf, received_bytes, 0) == -1) {
                     perror("send");
                 }
@@ -126,6 +126,8 @@ int receive_conns_spread_msgs(struct chatroom * cr, int listener) {
         }
     }
     printf("function end\n");
+    printf("end room:\n");
+    print_chatroom(*cr);
     return 0;
 }
 

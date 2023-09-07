@@ -103,13 +103,11 @@ int main(void) {
 
     // main accept loop
     while (1) {
-        print_chatroom(*test_room);
         if (receive_conns_spread_msgs(test_room, listen_socket) != 0) {
             printf("error happend when handling new connections\n");
             printf("errno (may not be related: %d", errno);
             perror("may not be related");
         }
-        print_chatroom(*test_room);
     }
     
     free_chat_room(test_room);

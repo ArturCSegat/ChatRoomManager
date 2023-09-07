@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
+#include <sys/poll.h>
 #include <unistd.h>
 #include <errno.h>
 #include <sys/types.h>
@@ -9,6 +10,7 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <netdb.h>
+#include <poll.h>
 
 #define PORT "6969"
 
@@ -74,16 +76,33 @@ int main(void) {
     char msg_buffer[200];
     int msg_b_size = sizeof msg_buffer;
 
-    if (fgets(msg_buffer, msg_b_size, stdin)) {
-        int bytes_sent = send(sock_fd, msg_buffer, msg_b_size, 0);
-        char con [INET6_ADDRSTRLEN];
-        struct sockaddr host;
-        getpeername(sock_fd, &host, (socklen_t *)sizeof host);
-        inet_ntop(host.sa_family, get_in_addr(&host), con, sizeof(con));
-
-        printf("sent %d bytes (%s) to %s\n", bytes_sent, msg_buffer, con);
-    }
+    char recv_msg_buffer[200];
+    int recv_b_size = sizeof recv_msg_buffer;
     
+    struct pollfd watch_list[1];
+    watch_list[0].fd = sock_fd;
+    watch_list[0].events = POLLIN;
+
+
+    while(1) {
+        int to_recv = poll(watch_list, 1, 2000);
+        
+        if (to_recv) {
+            int bytes_received = recv(sock_fd, recv_msg_buffer, recv_b_size, 0);
+            printf("message from server: %s\n", recv_msg_buffer);
+        }
+
+        printf("enter your message: ");
+        if (fgets(msg_buffer, msg_b_size, stdin)) {
+            int bytes_sent = send(sock_fd, msg_buffer, strlen(msg_buffer), 0);
+            char con [INET6_ADDRSTRLEN];
+            struct sockaddr host;
+            getpeername(sock_fd, &host, (socklen_t *)sizeof host);
+            inet_ntop(host.sa_family, get_in_addr(&host), con, sizeof(con));
+
+            printf("sent %d bytes (%s) to %s\n", bytes_sent, msg_buffer, con);
+        }
+    }
     close(sock_fd);
     return 0;
 }
