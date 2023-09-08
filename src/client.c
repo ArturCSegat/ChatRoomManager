@@ -7,9 +7,16 @@
 
 
 
-int main(void) {
+int main(int argc, char *argv[]) {
     
-    int sock_fd = get_server_sock_or_die();
+    if (argc != 2) {
+        fprintf(stderr, "Usage: %s <server_ip>\n", argv[0]);
+        return 1;
+    }
+
+    char *server_ip = argv[1];
+
+    int sock_fd = get_server_sock_or_die(server_ip);
 
     char msg_buffer[200];
     int msg_b_size = sizeof msg_buffer;
