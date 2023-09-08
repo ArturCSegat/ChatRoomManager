@@ -99,17 +99,17 @@ int main(void) {
         
         if (to_recv) {
             if (watch_list[0].revents & POLLHUP) {
-                printf("The server closed connection\n");
+                printf("\nThe server closed connection\n");
                 break;
             }
 
             if (watch_list[0].revents & POLLIN) {
                 int bytes_received = recv(sock_fd, recv_msg_buffer, recv_b_size, 0);
                 if (bytes_received <= 0) {
-                    printf("The server closed connection\n");
+                    printf("\nThe server closed connection\n");
                     break;
                 }
-                printf("message from server: %s\n", recv_msg_buffer);
+                printf("\nmessage from server: %s\n", recv_msg_buffer);
                 continue;
             }
         }
