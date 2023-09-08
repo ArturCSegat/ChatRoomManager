@@ -8,14 +8,14 @@
 
 
 int main(int argc, char *argv[]) {
-    
-    if (argc != 2) {
-        fprintf(stderr, "Usage: %s <server_ip>\n", argv[0]);
-        return 1;
-    }
 
     char *server_ip = argv[1];
 
+    if (argc != 2) {
+        printf("To specify a server's IP Address, please run: %s <server_ip> . Attempting to connect anyways...\n", argv[0]);
+        server_ip = NULL;
+    }
+    
     int sock_fd = get_server_sock_or_die(server_ip);
 
     char msg_buffer[200];
