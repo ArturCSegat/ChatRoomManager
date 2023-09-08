@@ -5,6 +5,7 @@
 #include <sys/socket.h>
 #include <stdio.h>
 #include <unistd.h>
+#include "din_arr.h"
 
 struct chatroom {
     int id;
@@ -67,28 +68,36 @@ void remove_con(struct chatroom * cr, int fd) {
     }
 }
 
+void print_listners(struct chatroom cr){
+    printf("[");
+    for (int i = 0; i < cr.fds_len; i++) {
+        printf("%d, ", cr.fds[i].fd);
+    }
+    printf("]\n");
+}
+
 // fill the sender_buf with all the sockets that want to send and the msgs_buff with the messages the senders want to send
 // will also accept any new connections to the listenr
-int receive_conns_spread_msgs(struct chatroom * cr, int listener) {
-    printf("function start\n");
-    printf("start room:\n");
-    print_chatroom(*cr);
+int recv_conns(struct chatroom * cr, int listener, din_arr * senders) {
+    if (senders->len > 0) {
+        return  1;
+    }
+
     int evented_count = poll(cr->fds, cr->fds_len, 1500); // 1500 ms
-    printf("%d sockets have events\n", evented_count);
     if (evented_count == -1) {
         return 1;     
     }
-    
+
     for (int i = 0; i < cr->fds_len; i++) {
-        if (cr->fds[i].revents & POLLIN) { // if has event
-            printf("%d, has event\n", cr->fds[i].fd);
+        if( cr->fds[i].revents & POLLIN) {  // if can read from this socket
             if (cr->fds[i].fd == listener) {
-                printf("is listener\n");
                 // accept any new connections
                 struct sockaddr new_con;
                 socklen_t new_c_size = sizeof new_con;
 
+                printf("before lock\n");
                 int new_fd = accept(listener, &new_con, &new_c_size);
+                printf("after lock\n");
 
                 if (new_fd == - 1) {
                     perror("failed to accept");
@@ -99,35 +108,9 @@ int receive_conns_spread_msgs(struct chatroom * cr, int listener) {
                 continue;
             }
             // any connections 
-            char msg_buf[200];
-            printf("locked?1\n");
-            int received_bytes = recv(cr->fds[i].fd, msg_buf, sizeof msg_buf, 0);            
-            printf("locked?2\n");
-
-            printf("received %d bytes from socket  %d mesage is: %s\n", received_bytes, cr->fds[i].fd, msg_buf);
-
-            if (received_bytes <= 0) {
-                if (received_bytes == 0) {
-                } else {
-                    perror("recv");
-                }
-                close(cr->fds[i].fd);
-                remove_con(cr, cr->fds[i].fd);
-                continue;
-            } 
-            
-            for (int j = 0; j < cr->fds_len; j++) {
-                if (cr->fds[j].fd == cr->fds[i].fd || cr->fds[j].fd == listener) {continue;};
-                if (send(cr->fds[j].fd, msg_buf, received_bytes, 0) == -1) {
-                    perror("send");
-                }
-            }
-            
+            append(senders, cr->fds[i].fd);
         }
     }
-    printf("function end\n");
-    printf("end room:\n");
-    print_chatroom(*cr);
     return 0;
 }
 

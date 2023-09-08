@@ -1,16 +1,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <strings.h>
 #include <sys/poll.h>
 #include <unistd.h>
 #include <errno.h>
-#include <sys/types.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
-#include <netinet/in.h>
 #include <netdb.h>
 #include <poll.h>
+#include <fcntl.h>
 
 #define PORT "6969"
 
@@ -30,6 +28,7 @@ struct addrinfo * get_sock_info() {
 }
 
 void *get_in_addr(struct sockaddr *sa) {
+
     if (sa->sa_family == AF_INET) {
         return &(((struct sockaddr_in*)sa)->sin_addr);
     }
@@ -83,25 +82,45 @@ int main(void) {
     watch_list[0].fd = sock_fd;
     watch_list[0].events = POLLIN;
 
+    fcntl(0, F_SETFL, fcntl(0, F_GETFL) | O_NONBLOCK);
 
+    int reading = 0;
     while(1) {
-        int to_recv = poll(watch_list, 1, 2000);
+        int to_recv = poll(watch_list, 1, 1000);
         
         if (to_recv) {
-            int bytes_received = recv(sock_fd, recv_msg_buffer, recv_b_size, 0);
-            printf("message from server: %s\n", recv_msg_buffer);
-        }
+            if (watch_list[0].revents & POLLHUP) {
+                printf("The server closed connection\n");
+                break;
+            }
 
-        printf("enter your message: ");
-        if (fgets(msg_buffer, msg_b_size, stdin)) {
-            int bytes_sent = send(sock_fd, msg_buffer, strlen(msg_buffer), 0);
-            char con [INET6_ADDRSTRLEN];
-            struct sockaddr host;
-            getpeername(sock_fd, &host, (socklen_t *)sizeof host);
-            inet_ntop(host.sa_family, get_in_addr(&host), con, sizeof(con));
-
-            printf("sent %d bytes (%s) to %s\n", bytes_sent, msg_buffer, con);
+            if (watch_list[0].revents & POLLIN) {
+                int bytes_received = recv(sock_fd, recv_msg_buffer, recv_b_size, 0);
+                if (bytes_received <= 0) {
+                    printf("The server closed connection\n");
+                    break;
+                }
+                printf("message from server: %s\n", recv_msg_buffer);
+                continue;
+            }
         }
+        
+        if (!fork()) {
+            if (reading == 0) {
+                printf("enter your message: ");
+                reading = 1;
+            }
+            int bytes_read = read(0, msg_buffer, msg_b_size);
+            sleep(1);
+
+            if (bytes_read > 0) {
+                int bytes_sent = send(sock_fd, msg_buffer, strlen(msg_buffer), 0);
+                printf("sent %d bytes (%s) to\n", bytes_sent, msg_buffer);
+                memset(msg_buffer, 0, sizeof msg_buffer);
+            }
+            exit(0);
+        }
+        reading = 0;
     }
     close(sock_fd);
     return 0;

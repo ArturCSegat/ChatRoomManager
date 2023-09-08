@@ -14,6 +14,7 @@
 #define PORT "6969"
 #define MAX_QUEUE 10
 
+
 // gets the ip of a sockaddr 4 or 6
 void *get_in_addr(struct sockaddr *sa) {
     if (sa->sa_family == AF_INET) {
@@ -30,9 +31,9 @@ struct addrinfo * get_sock_info() {
     memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
-    hints.ai_flags = AI_PASSIVE;
+    // hints.ai_flags = AI_PASSIVE;
 
-    if (getaddrinfo(NULL, PORT, &hints, &socket_info) != 0) {
+    if (getaddrinfo("25.2.251.31", PORT, &hints, &socket_info) != 0) {
         return NULL;
     }
     return socket_info;
@@ -103,11 +104,42 @@ int main(void) {
 
     // main accept loop
     while (1) {
-        if (receive_conns_spread_msgs(test_room, listen_socket) != 0) {
+        din_arr * senders = new_din_arr(3);
+        if (recv_conns(test_room, listen_socket, senders) != 0) {
             printf("error happend when handling new connections\n");
             printf("errno (may not be related: %d", errno);
             perror("may not be related");
         }
+        print_listners(*test_room);
+        if (senders->len > 0) {
+            printf("someone wants to talk: %d\n", senders->len);
+            for (int i = 0; i < senders->len; i++) {
+                char msg_buff[200];
+                int bytes = recv(senders->arr[i], msg_buff, sizeof msg_buff, 0);
+                
+                if (bytes <= 0) {
+                    close(senders->arr[i]);
+                    remove_con(test_room, senders->arr[i]);
+                    printf("closed connection from %d\n", senders->arr[i]);
+                    sleep(2);
+                    continue;
+                }
+                
+                for (int j = 0; j < test_room->fds_len; j++) {
+                    if (test_room->fds[j].fd == listen_socket || test_room->fds[j].fd == senders->arr[i]){
+                        continue;
+                    }
+                    if (send(test_room->fds[j].fd, msg_buff, strlen(msg_buff), 0) == - 1) {
+                        printf("error on sending to %d\n", test_room->fds[j].fd);
+                        perror("send");
+                    }
+                }
+
+                printf("spreading message %d bytes long from %d (%s)\n", bytes, senders->arr[i], msg_buff);
+                memset(msg_buff, 0, sizeof(msg_buff));
+            }
+        }
+        free_din_arr(senders);
     }
     
     free_chat_room(test_room);
