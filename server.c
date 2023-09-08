@@ -119,7 +119,7 @@ int main(void) {
                     close(senders->arr[i]);
                     remove_con(test_room, senders->arr[i]);
                     printf("closed connection from %d\n", senders->arr[i]);
-                    sleep(2);
+                        sleep(2);
                     continue;
                 }
                 
