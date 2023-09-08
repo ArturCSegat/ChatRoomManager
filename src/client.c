@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <sys/socket.h>
@@ -15,9 +16,18 @@ int main(int argc, char *argv[]) {
         printf("To specify a server's IP Address, please run: %s <server_ip> . Attempting to connect anyways...\n", argv[0]);
         server_ip = NULL;
     }
-    
-    int sock_fd = get_server_sock_or_die(server_ip);
 
+    char name[20];
+    printf("what do you want to be called? :");
+    fgets(name, sizeof name, stdin);
+    name[strcspn(name, "\n")] = 0; 
+    
+    printf("sendind: %s\n", name);
+
+    int sock_fd = get_server_sock_or_die(server_ip);
+    send(sock_fd, name, strlen(name), 0);
+
+    printf("\n");
     char msg_buffer[200];
     int msg_b_size = sizeof msg_buffer;
 
@@ -53,9 +63,10 @@ int main(int argc, char *argv[]) {
                 int bytes_received = recv(sock_fd, recv_msg_buffer, recv_b_size, 0);
                 if (bytes_received <= 0) {
                     printf("\nThe server closed connection\n");
+                    exit(1);
                     break;
                 }
-                printf("\nmessage from server: %s\n", recv_msg_buffer);
+                printf("%s", recv_msg_buffer);
                 memset(recv_msg_buffer, 0, sizeof recv_msg_buffer);
                 continue;
             }

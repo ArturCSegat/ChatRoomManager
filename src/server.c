@@ -17,6 +17,7 @@ int main(void) {
     
     struct chatroom * test_room = chatroom_builder(0, "sala teste");
     add_con(test_room, listen_socket);
+    append_str(test_room->names, "server", 6);
 
     // main accept loop
     while (1) {
@@ -39,15 +40,7 @@ int main(void) {
                     continue;
                 }
                 
-                for (int j = 0; j < test_room->fds_len; j++) {
-                    if (test_room->fds[j].fd == listen_socket || test_room->fds[j].fd == senders->arr[i]){
-                        continue;
-                    }
-                    if (send(test_room->fds[j].fd, msg_buff, strlen(msg_buff), 0) == - 1) {
-                        printf("error on sending to %d\n", test_room->fds[j].fd);
-                        perror("send");
-                    }
-                }
+                spread_msg(test_room, msg_buff, listen_socket, senders->arr[i]);
 
                 printf("spreading message %d bytes long from %d (%s)\n", bytes, senders->arr[i], msg_buff);
                 memset(msg_buff, 0, sizeof(msg_buff));

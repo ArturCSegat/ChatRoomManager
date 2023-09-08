@@ -7,6 +7,7 @@ struct chatroom {
     int id;
     char name[50];
     struct pollfd * fds;
+    str_din_arr * names;
     int fds_len;
     int fds_cap;
 };
@@ -26,5 +27,7 @@ void print_listners(struct chatroom cr);
 // fill the sender_buf with all the sockets that want to send and the msgs_buff with the messages the senders want to send
 // will also accept any new connections to the listenr
 int recv_conns(struct chatroom * cr, int listener, din_arr * senders);
+
+void spread_msg(struct chatroom * cr, const char * msg, int server_fd, int sender_fd);
 
 #endif

@@ -18,6 +18,7 @@ struct chatroom * chatroom_builder(int id, char name[50]) {
     cr->fds = (struct pollfd * )malloc(sizeof(struct pollfd) * 3);
     cr->fds_len = 0;
     cr->fds_cap = 3;
+    cr->names = new_str_din_arr(3);
 
     return cr;
 }
@@ -32,9 +33,12 @@ void print_chatroom(struct chatroom cr) {
     printf("]\n");
     printf("len: %d\n", cr.fds_len);
     printf("cap: %d\n", cr.fds_cap);
+    printf("names: ");
+    print_strdinarr(*cr.names);
 }
 
 void free_chat_room(struct chatroom * cr) {
+    free_str_din_arr(cr->names);
     free(cr->fds);
     free(cr);
 }
@@ -42,7 +46,7 @@ void free_chat_room(struct chatroom * cr) {
 void add_con(struct chatroom * cr, int fd) {
     if (cr->fds_len + 1 == cr->fds_cap) {
         cr->fds_cap *= 1.5;
-        cr->fds = (struct pollfd * )realloc(cr->fds, cr->fds_cap);
+        cr->fds = (struct pollfd * )realloc(cr->fds, cr->fds_cap * sizeof(struct pollfd));
     }
     cr->fds[cr->fds_len].fd = fd; 
     cr->fds[cr->fds_len].events = POLLIN; 
@@ -86,15 +90,21 @@ int recv_conns(struct chatroom * cr, int listener, din_arr * senders) {
                 struct sockaddr new_con;
                 socklen_t new_c_size = sizeof new_con;
 
-                printf("before lock\n");
                 int new_fd = accept(listener, &new_con, &new_c_size);
-                printf("after lock\n");
 
                 if (new_fd == - 1) {
                     perror("failed to accept");
                 } else {
                     add_con(cr, new_fd);
-                    printf("new connection from %d\n", new_fd);
+                    char name_buff[20];
+                    int name_bytes = recv(new_fd, name_buff, sizeof name_buff, 0);
+                    append_str(cr->names, name_buff, name_bytes);
+
+                    char server_msg[50];
+                    snprintf(server_msg, sizeof server_msg, "%s has joined the channel from socket %d\n", cr->names->arr[cr->names->len - 1], new_fd);
+                    printf("%s", server_msg);
+                    spread_msg(cr, server_msg, listener, listener);
+                    memset(name_buff, 0, name_bytes);
                 }
                 continue;
             }
@@ -105,3 +115,33 @@ int recv_conns(struct chatroom * cr, int listener, din_arr * senders) {
     return 0;
 }
 
+void spread_msg(struct chatroom * cr, const char * msg, int server_fd, int sender_fd) {
+
+    int senders_idx;
+    for (int i = 0; i < cr->fds_len; i++) {
+        if (cr->fds[i].fd == sender_fd) {
+            senders_idx = i;
+            break;
+        }
+    }
+    
+    // char * full_message = "";
+    // strcat(full_message, cr->names->arr[senders_idx]);
+    // strcat(full_message, " says: ");
+    // strcat(full_message, msg);
+    // strcat(full_message, "\n");
+    
+    // max name size = 20 + space = 1+ says:space = 6 + max msg size = 200 + \n = 1 = 228;
+    char full_message[228];
+    snprintf(full_message, sizeof full_message, "%s says: %s\n", cr->names->arr[senders_idx], msg);
+
+    for (int j = 0; j < cr->fds_len; j++) {
+        if (cr->fds[j].fd == server_fd || cr->fds[j].fd == sender_fd){
+            continue;
+        }
+        if (send(cr->fds[j].fd, full_message, strlen(full_message), 0) == - 1) {
+            printf("error on sending to %d\n", cr->fds[j].fd);
+            perror("send");
+        }
+    }
+}
