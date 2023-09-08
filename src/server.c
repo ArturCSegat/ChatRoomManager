@@ -20,40 +20,7 @@
 
 
 int main(void) {
-    struct addrinfo * sock_info;
-    if  ((sock_info = get_sock_info(NULL)) == NULL) {
-        printf("error code: %d", errno);
-        perror("info");
-        freeaddrinfo(sock_info);
-        return -1;
-    } 
-
-    int listen_socket;
-    struct addrinfo * p;
-    for (p = sock_info; p != NULL; p = p->ai_next) { 
-        if ((listen_socket = socket(sock_info->ai_family, sock_info->ai_socktype, sock_info->ai_protocol)) == - 1) {
-            printf("error: %d\n", errno);
-            perror("sock");
-            continue;
-        }
-
-        if (bind(listen_socket, sock_info->ai_addr, sock_info->ai_addrlen) == - 1) {
-            printf("error: %d\n", errno);
-            perror("bind");
-            close(listen_socket);
-            continue;
-        }
-
-        break;
-    }
-    freeaddrinfo(sock_info);
-
-    if (p == NULL)  {
-        fprintf(stderr, "server: failed to bind\n");
-        printf("errno: %d\n", errno);
-        perror("bind fail");
-        exit(1);
-    }
+    int listen_socket = get_listening_sock_or_die();
 
     printf("listening on %d :...\n", listen_socket);
     if (listen(listen_socket, MAX_QUEUE) == - 1) {
