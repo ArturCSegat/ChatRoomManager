@@ -9,6 +9,7 @@
 #include <netdb.h>
 #include <poll.h>
 #include <fcntl.h>
+#include <ncurses.h>
 
 #define PORT "6969"
 
@@ -72,48 +73,62 @@ int main(void) {
     }
 
 
+    initscr();
+    cbreak();
+    noecho();
+    keypad(stdscr, TRUE);
+
+    int input_height = 3; // Adjust the height as needed
+    WINDOW *input_win = newwin(input_height, COLS, LINES - input_height, 0);
+    scrollok(input_win, TRUE);
+
+    refresh();
+
     char msg_buffer[200];
     int msg_b_size = sizeof msg_buffer;
-
     char recv_msg_buffer[200];
     int recv_b_size = sizeof recv_msg_buffer;
-    
     struct pollfd watch_list[1];
     watch_list[0].fd = sock_fd;
     watch_list[0].events = POLLIN;
-
-    // fcntl(0, F_SETFL, fcntl(0, F_GETFL) | O_NONBLOCK);
+    
     if (!fork()) {
-        while(1) {
-            printf("enter your message: ");
+        while (1) {
+            mvwprintw(input_win, 1, 1, "Enter your message: ");
+            wrefresh(input_win);
+
             if (fgets(msg_buffer, msg_b_size, stdin)) {
                 int bytes_sent = send(sock_fd, msg_buffer, strlen(msg_buffer), 0);
-                printf("sent %d bytes (%s) to\n", bytes_sent, msg_buffer);
+                wprintw(input_win, "Sent %d bytes (%s) to server\n", bytes_sent, msg_buffer);
+                wrefresh(input_win);
+
                 memset(msg_buffer, 0, sizeof msg_buffer);
             }
         }
     }
 
-    while(1) {
+    while (1) {
         int to_recv = poll(watch_list, 1, 1000);
-        
         if (to_recv) {
             if (watch_list[0].revents & POLLHUP) {
-                printf("\nThe server closed connection\n");
+                mvprintw(0, 0, "\nThe server closed connection\n");
+                refresh();
                 break;
             }
-
             if (watch_list[0].revents & POLLIN) {
                 int bytes_received = recv(sock_fd, recv_msg_buffer, recv_b_size, 0);
                 if (bytes_received <= 0) {
-                    printf("\nThe server closed connection\n");
+                    mvprintw(0, 0, "\nThe server closed connection\n");
+                    refresh();
                     break;
                 }
-                printf("\nmessage from server: %s\n", recv_msg_buffer);
-                continue;
+                mvprintw(0, 0, "Message from server: %s\n", recv_msg_buffer);
+                refresh();
+                memset(recv_msg_buffer, 0, sizeof recv_msg_buffer);
             }
         }
     }
     close(sock_fd);
+    endwin();
     return 0;
 }
