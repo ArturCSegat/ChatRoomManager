@@ -10,25 +10,10 @@
 #include "../headers/chat_room.h"
 #include "../headers/network_utils.h"
 
-
-
-#define PORT "6969"
-#define MAX_QUEUE 10
-
-
-// gets the ip of a sockaddr 4 or 6
-
-
 int main(void) {
     int listen_socket = get_listening_sock_or_die();
 
     printf("listening on %d :...\n", listen_socket);
-    if (listen(listen_socket, MAX_QUEUE) == - 1) {
-        printf("error: %d\n", errno);
-        perror("listen");
-        close(listen_socket);
-        return -1;
-    }
     
     struct chatroom * test_room = chatroom_builder(0, "sala teste");
     add_con(test_room, listen_socket);

@@ -7,6 +7,9 @@
 #include <netdb.h>
 #include "../network_utils.h"
 
+#define PORT "6969"
+#define MAX_QUEUE 10
+
 void *get_in_addr(struct sockaddr *sa) {
 
     if (sa->sa_family == AF_INET) {
@@ -108,5 +111,13 @@ int get_listening_sock_or_die() {
         perror("bind fail");
         exit(1);
     }
+
+    if (listen(listen_socket, MAX_QUEUE) == - 1) {
+        printf("error: %d\n", errno);
+        perror("listen");
+        close(listen_socket);
+        exit(1);
+    }
+
     return listen_socket;
 }
