@@ -12,16 +12,15 @@
 
 #define PORT "6969"
 
-struct addrinfo * get_sock_info() {
+struct addrinfo * get_sock_info(const char *ip) {
     struct addrinfo hints;
     struct addrinfo * socket_info;
     
     memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
-    hints.ai_flags = AI_PASSIVE;
 
-    if (getaddrinfo(NULL, PORT, &hints, &socket_info) != 0) {
+    if (getaddrinfo(ip, PORT, &hints, &socket_info) != 0) {
         return NULL;
     }
     return socket_info;
@@ -36,14 +35,20 @@ void *get_in_addr(struct sockaddr *sa) {
     return &(((struct sockaddr_in6*)sa)->sin6_addr);
 }
 
-int main(void) {
-    struct addrinfo * sock_info;   
-    if  ((sock_info = get_sock_info()) == NULL) {
-        printf("error code: %d", errno);
-        perror("info");
-        freeaddrinfo(sock_info);
-        exit(1);
-    } 
+int main(int argc, char *argv[]) {
+    if (argc != 2) {
+        fprintf(stderr, "Usage: %s <server_ip>\n", argv[0]);
+        return 1;
+    }
+
+    const char *server_ip = argv[1];
+    struct addrinfo *sock_info;
+
+    if ((sock_info = get_sock_info(server_ip)) == NULL) {
+        fprintf(stderr, "Error code: %d\n", errno);
+        perror("getaddrinfo");
+        return 1;
+    }
 
     int sock_fd;
     struct addrinfo * p;
