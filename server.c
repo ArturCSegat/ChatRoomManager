@@ -110,9 +110,7 @@ int main(void) {
             printf("errno (may not be related: %d", errno);
             perror("may not be related");
         }
-        print_listners(*test_room);
         if (senders->len > 0) {
-            printf("someone wants to talk: %d\n", senders->len);
             for (int i = 0; i < senders->len; i++) {
                 char msg_buff[200];
                 int bytes = recv(senders->arr[i], msg_buff, sizeof msg_buff, 0);

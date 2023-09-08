@@ -19,8 +19,9 @@ struct addrinfo * get_sock_info() {
     memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
+    hints.ai_flags = AI_PASSIVE;
 
-    if (getaddrinfo("", PORT, &hints, &socket_info) != 0) {
+    if (getaddrinfo(NULL, PORT, &hints, &socket_info) != 0) {
         return NULL;
     }
     return socket_info;
@@ -81,9 +82,18 @@ int main(void) {
     watch_list[0].fd = sock_fd;
     watch_list[0].events = POLLIN;
 
-    fcntl(0, F_SETFL, fcntl(0, F_GETFL) | O_NONBLOCK);
+    // fcntl(0, F_SETFL, fcntl(0, F_GETFL) | O_NONBLOCK);
+    if (!fork()) {
+        while(1) {
+            printf("enter your message: ");
+            if (fgets(msg_buffer, msg_b_size, stdin)) {
+                int bytes_sent = send(sock_fd, msg_buffer, strlen(msg_buffer), 0);
+                printf("sent %d bytes (%s) to\n", bytes_sent, msg_buffer);
+                memset(msg_buffer, 0, sizeof msg_buffer);
+            }
+        }
+    }
 
-    int reading = 0;
     while(1) {
         int to_recv = poll(watch_list, 1, 1000);
         
@@ -103,23 +113,6 @@ int main(void) {
                 continue;
             }
         }
-        
-        if (!fork()) {
-            if (reading == 0) {
-                printf("enter your message: ");
-                reading = 1;
-            }
-            int bytes_read = read(0, msg_buffer, msg_b_size);
-            sleep(1);
-
-            if (bytes_read > 0) {
-                int bytes_sent = send(sock_fd, msg_buffer, strlen(msg_buffer), 0);
-                printf("sent %d bytes (%s) to\n", bytes_sent, msg_buffer);
-                memset(msg_buffer, 0, sizeof msg_buffer);
-            }
-            exit(0);
-        }
-        reading = 0;
     }
     close(sock_fd);
     return 0;
