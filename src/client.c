@@ -1,7 +1,10 @@
-#include <sys/poll.h>
-#include "network_utils.h"
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/socket.h>
+#include <poll.h>
+#include "../headers/network_utils.h"
 
-#define PORT "6969"
 
 
 int main(void) {

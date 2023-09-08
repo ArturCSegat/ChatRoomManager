@@ -5,8 +5,7 @@
 #include <sys/socket.h>
 #include <errno.h>
 #include <netdb.h>
-
-# define PORT "6969"
+#include "../network_utils.h"
 
 void *get_in_addr(struct sockaddr *sa) {
 

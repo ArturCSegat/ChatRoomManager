@@ -1,63 +1,27 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <strings.h>
 #include <unistd.h>
 #include <errno.h>
-#include <sys/types.h>
 #include <sys/socket.h>
-#include <arpa/inet.h>
-#include <netinet/in.h>
 #include <netdb.h>
-#include "chat_room.h"
+#include <poll.h>
+#include "../headers/din_arr.h"
+#include "../headers/chat_room.h"
+#include "../headers/network_utils.h"
+
+
 
 #define PORT "6969"
 #define MAX_QUEUE 10
 
 
 // gets the ip of a sockaddr 4 or 6
-void *get_in_addr(struct sockaddr *sa) {
-    if (sa->sa_family == AF_INET) {
-        return &(((struct sockaddr_in*)sa)->sin_addr);
-    }
 
-    return &(((struct sockaddr_in6*)sa)->sin6_addr);
-}
-
-struct addrinfo * get_sock_info() {
-    struct addrinfo hints;
-    struct addrinfo * socket_info;
-    
-    memset(&hints, 0, sizeof(hints));
-    hints.ai_family = AF_UNSPEC;
-    hints.ai_socktype = SOCK_STREAM;
-    hints.ai_flags = AI_PASSIVE;
-
-    if (getaddrinfo(NULL, PORT, &hints, &socket_info) != 0) {
-        return NULL;
-    }
-    return socket_info;
-}
-
-int handle_entry(int sock_fd, char * con) {
-    char response_buffer[200];
-    int res_b_size = sizeof(response_buffer);
-
-    int recvd_bytes = recv(sock_fd, response_buffer, res_b_size, 0);
-
-    printf("received %d bytes from %s\n", recvd_bytes, con);
-    if (recvd_bytes == 0) {
-        printf("no bytes received");
-    }
-
-    // temporary, better msg handling later
-    printf("received string: %s\n", response_buffer);
-    return recvd_bytes;
-}
 
 int main(void) {
     struct addrinfo * sock_info;
-    if  ((sock_info = get_sock_info()) == NULL) {
+    if  ((sock_info = get_sock_info(NULL)) == NULL) {
         printf("error code: %d", errno);
         perror("info");
         freeaddrinfo(sock_info);

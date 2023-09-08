@@ -1,19 +1,10 @@
-#include <poll.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/poll.h>
 #include <sys/socket.h>
-#include <stdio.h>
-#include <unistd.h>
-#include "din_arr.h"
-
-struct chatroom {
-    int id;
-    char name[50];
-    struct pollfd * fds;
-    int fds_len;
-    int fds_cap;
-};
+#include <poll.h>
+#include "../din_arr.h"
+#include "../chat_room.h"
 
 struct chatroom * chatroom_builder(int id, char name[50]) {
     struct chatroom * cr = (struct chatroom * )malloc(sizeof(struct chatroom));

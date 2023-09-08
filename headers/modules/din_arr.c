@@ -1,11 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-
-typedef struct {
-    int * arr;
-    int len;
-    int cap;
-}din_arr;
+#include "../din_arr.h"
 
 din_arr * new_din_arr(int cap){
     din_arr * da = (din_arr*)malloc(sizeof(din_arr));
