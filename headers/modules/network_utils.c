@@ -30,20 +30,21 @@ struct addrinfo * get_sock_info(const char * ip) {
         hints.ai_flags = AI_PASSIVE;
     }
 
-    if (getaddrinfo(NULL, PORT, &hints, &socket_info) != 0) {
+    if (getaddrinfo(ip, PORT, &hints, &socket_info) != 0) {
         return NULL;
     }
     return socket_info;
 }
 
-int get_server_sock_or_die() {
-    struct addrinfo * sock_info;   
-    if  ((sock_info = get_sock_info(NULL)) == NULL) {
+int get_server_sock_or_die(const char *server_ip) {
+    struct addrinfo *sock_info;
+
+    if ((sock_info = get_sock_info(server_ip)) == NULL) {
         printf("error code: %d", errno);
         perror("info");
         freeaddrinfo(sock_info);
         exit(1);
-    } 
+    }
 
     int sock_fd;
     struct addrinfo * p;

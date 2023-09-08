@@ -7,9 +7,16 @@
 
 
 
-int main(void) {
+int main(int argc, char *argv[]) {
+
+    char *server_ip = argv[1];
+
+    if (argc != 2) {
+        printf("To specify a server's IP Address, please run: %s <server_ip> . Attempting to connect anyways...\n", argv[0]);
+        server_ip = NULL;
+    }
     
-    int sock_fd = get_server_sock_or_die();
+    int sock_fd = get_server_sock_or_die(server_ip);
 
     char msg_buffer[200];
     int msg_b_size = sizeof msg_buffer;
