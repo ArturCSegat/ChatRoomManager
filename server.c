@@ -31,9 +31,9 @@ struct addrinfo * get_sock_info() {
     memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
-    // hints.ai_flags = AI_PASSIVE;
+    hints.ai_flags = AI_PASSIVE;
 
-    if (getaddrinfo("25.2.251.31", PORT, &hints, &socket_info) != 0) {
+    if (getaddrinfo(NULL, PORT, &hints, &socket_info) != 0) {
         return NULL;
     }
     return socket_info;
