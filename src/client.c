@@ -1,3 +1,4 @@
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -41,8 +42,8 @@ int main(int argc, char *argv[]) {
     watch_list[0].fd = sock_fd;
     watch_list[0].events = POLLIN;
 
-    // fcntl(0, F_SETFL, fcntl(0, F_GETFL) | O_NONBLOCK);
-    if (!fork()) {
+    int input_reader_pid;
+    if ((input_reader_pid = fork()) == 0) {
         while(1) {
             printf("enter your message: ");
             if (fgets(msg_buffer, msg_b_size, stdin)) {
@@ -67,6 +68,7 @@ int main(int argc, char *argv[]) {
                 int bytes_received = recv(sock_fd, recv_msg_buffer, recv_b_size, 0);
                 if (bytes_received <= 0) {
                     printf("\nThe server closed connection\n");
+                    kill(input_reader_pid, SIGTERM);
                     exit(1);
                     break;
                 }
