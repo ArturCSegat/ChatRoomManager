@@ -5,13 +5,23 @@
 #include <unistd.h>
 #include <sys/socket.h>
 #include <poll.h>
-#include <stdio_ext.h>
+#include <signal.h>
 #include "../headers/network_utils.h"
 
 # define MAX_NAME 20
 # define MAX_MSG 200
 
+int running = 1;
+
+void ctrl_c_handler(int si) {
+    if (si == SIGINT){
+        running = 0;
+    }
+}
+
 int main(int argc, char *argv[]) {
+
+    signal(SIGINT, ctrl_c_handler);
 
     char *server_ip = argv[1];
 
@@ -42,20 +52,19 @@ int main(int argc, char *argv[]) {
     watch_list[0].fd = sock_fd;
     watch_list[0].events = POLLIN;
 
-    int input_reader_pid;
-    if ((input_reader_pid = fork()) == 0) {
-        while(1) {
+    if (!fork()) {
+        while(running) {
             printf("enter your message: ");
             if (fgets(msg_buffer, msg_b_size, stdin)) {
                 int bytes_sent = send(sock_fd, msg_buffer, strlen(msg_buffer), 0);
                 memset(msg_buffer, 0, sizeof msg_buffer);
-                __fpurge(stdin); // clear shit from stdin
+                __fpurge(stdin);
             }
         }
-        printf("end\n");
+        exit(0);
     }
 
-    while(1) {
+    while(running) {
         int to_recv = poll(watch_list, 1, 1000);
         
         if (to_recv) {
@@ -68,8 +77,6 @@ int main(int argc, char *argv[]) {
                 int bytes_received = recv(sock_fd, recv_msg_buffer, recv_b_size, 0);
                 if (bytes_received <= 0) {
                     printf("\nThe server closed connection\n");
-                    kill(input_reader_pid, SIGTERM);
-                    exit(1);
                     break;
                 }
                 printf("%s", recv_msg_buffer);
@@ -78,7 +85,6 @@ int main(int argc, char *argv[]) {
             }
         }
     }
-    printf("end\n");
     close(sock_fd);
     return 0;
 }
