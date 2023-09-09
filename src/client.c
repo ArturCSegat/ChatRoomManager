@@ -6,6 +6,7 @@
 #include <sys/socket.h>
 #include <poll.h>
 #include <signal.h>
+#include <stdio_ext.h>
 #include "../headers/network_utils.h"
 
 # define MAX_NAME 20
