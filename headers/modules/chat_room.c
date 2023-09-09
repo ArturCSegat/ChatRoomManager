@@ -83,7 +83,12 @@ int recv_conns(struct chatroom * cr, int listener, din_arr * senders) {
         return 1;     
     }
 
+    int skip = 0;
     for (int i = 0; i < cr->fds_len; i++) {
+        if (cr->fds[i].fd == skip) {
+            continue;
+        }
+
         if( cr->fds[i].revents & POLLIN) {  // if can read from this socket
             if (cr->fds[i].fd == listener) {
                 // accept any new connections
@@ -96,14 +101,21 @@ int recv_conns(struct chatroom * cr, int listener, din_arr * senders) {
                     perror("failed to accept");
                 } else {
                     add_con(cr, new_fd);
+
                     char name_buff[20];
                     int name_bytes = recv(new_fd, name_buff, sizeof name_buff, 0);
+                    
+                    if (name_bytes >= 20) {
+                        name_buff[19] = 0;
+                        skip = new_fd;
+                    }
+
                     append_str(cr->names, name_buff, name_bytes);
 
-                    char server_msg[50];
+                    char server_msg[100];
                     snprintf(server_msg, sizeof server_msg, "%s has joined the channel from socket %d\n", cr->names->arr[cr->names->len - 1], new_fd);
-                    printf("%s", server_msg);
-                    spread_msg(cr, server_msg, listener, listener);
+                    spread_msg(cr, server_msg, new_fd, listener); // the order is reversed so the mesage is not sent to new_fd but is sent from listener
+
                     memset(name_buff, 0, name_bytes);
                 }
                 continue;
@@ -116,7 +128,6 @@ int recv_conns(struct chatroom * cr, int listener, din_arr * senders) {
 }
 
 void spread_msg(struct chatroom * cr, const char * msg, int server_fd, int sender_fd) {
-
     int senders_idx;
     for (int i = 0; i < cr->fds_len; i++) {
         if (cr->fds[i].fd == sender_fd) {
@@ -125,16 +136,10 @@ void spread_msg(struct chatroom * cr, const char * msg, int server_fd, int sende
         }
     }
     
-    // char * full_message = "";
-    // strcat(full_message, cr->names->arr[senders_idx]);
-    // strcat(full_message, " says: ");
-    // strcat(full_message, msg);
-    // strcat(full_message, "\n");
-    
-    // max name size = 20 + space = 1+ says:space = 6 + max msg size = 200 + \n = 1 = 228;
-    char full_message[228];
+    char full_message[sizeof(msg) + 100];
     snprintf(full_message, sizeof full_message, "%s says: %s\n", cr->names->arr[senders_idx], msg);
 
+    printf("spreading message: %s\n", full_message);
     for (int j = 0; j < cr->fds_len; j++) {
         if (cr->fds[j].fd == server_fd || cr->fds[j].fd == sender_fd){
             continue;

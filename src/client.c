@@ -4,9 +4,11 @@
 #include <unistd.h>
 #include <sys/socket.h>
 #include <poll.h>
+#include <stdio_ext.h>
 #include "../headers/network_utils.h"
 
-
+# define MAX_NAME 20
+# define MAX_MSG 200
 
 int main(int argc, char *argv[]) {
 
@@ -17,21 +19,22 @@ int main(int argc, char *argv[]) {
         server_ip = NULL;
     }
 
-    char name[20];
+    char name[MAX_NAME];
     printf("what do you want to be called? :");
-    fgets(name, sizeof name, stdin);
+    fgets(name, MAX_NAME, stdin);
+    __fpurge(stdin); // clear shit from stdin
+
     name[strcspn(name, "\n")] = 0; 
     
-    printf("sendind: %s\n", name);
-
     int sock_fd = get_server_sock_or_die(server_ip);
     send(sock_fd, name, strlen(name), 0);
+    memset(name, 0, MAX_NAME);
 
     printf("\n");
-    char msg_buffer[200];
+    char msg_buffer[MAX_MSG];
     int msg_b_size = sizeof msg_buffer;
 
-    char recv_msg_buffer[200];
+    char recv_msg_buffer[MAX_MSG];
     int recv_b_size = sizeof recv_msg_buffer;
     
     struct pollfd watch_list[1];
@@ -45,6 +48,7 @@ int main(int argc, char *argv[]) {
             if (fgets(msg_buffer, msg_b_size, stdin)) {
                 int bytes_sent = send(sock_fd, msg_buffer, strlen(msg_buffer), 0);
                 memset(msg_buffer, 0, sizeof msg_buffer);
+                __fpurge(stdin); // clear shit from stdin
             }
         }
         printf("end\n");

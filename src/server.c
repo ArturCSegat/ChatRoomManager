@@ -1,11 +1,8 @@
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
-#include <sys/socket.h>
 #include <netdb.h>
-#include <poll.h>
 #include "../headers/din_arr.h"
 #include "../headers/chat_room.h"
 #include "../headers/network_utils.h"
@@ -36,13 +33,11 @@ int main(void) {
                     close(senders->arr[i]);
                     remove_con(test_room, senders->arr[i]);
                     printf("closed connection from %d\n", senders->arr[i]);
-                        sleep(2);
                     continue;
                 }
                 
                 spread_msg(test_room, msg_buff, listen_socket, senders->arr[i]);
 
-                printf("spreading message %d bytes long from %d (%s)\n", bytes, senders->arr[i], msg_buff);
                 memset(msg_buff, 0, sizeof(msg_buff));
             }
         }

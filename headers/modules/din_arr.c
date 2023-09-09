@@ -65,7 +65,7 @@ void free_str_din_arr(str_din_arr * da) {
 void append_str(str_din_arr * da, char * str, int len) {
     if (da->len == da->cap) {
         da->cap *= 1.5;
-        da->arr = (char**)realloc(da->arr, da->cap);
+        da->arr = (char**)realloc(da->arr, da->cap * sizeof(char*));
         for (int i = da->len; i < da->cap; i++){
             da->arr[i] = (char*)malloc(sizeof(char) * 20);
         }
