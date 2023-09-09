@@ -13,4 +13,4 @@ include_directories(headers)
 # Define the executable
 add_executable(server ${SERVER_SOURCE} ${MODULE_SOURCES})
 add_executable(client ${CLIENT_SOURCE} ${MODULE_SOURCES})
-
+target_link_libraries(client ncurses)
