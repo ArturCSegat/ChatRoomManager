@@ -1,33 +1,35 @@
-#include <signal.h>
+#include <curses.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <sys/socket.h>
 #include <poll.h>
-#include <signal.h>
 #include <stdio_ext.h>
+#include <signal.h>
+#include <ncurses.h>
 #include "../headers/network_utils.h"
+
 
 # define MAX_NAME 20
 # define MAX_MSG 200
 
-int running = 1;
+static volatile sig_atomic_t running = 1;
 
-void ctrl_c_handler(int si) {
-    if (si == SIGINT){
+void handle_ctrl_c(int si) {
+    if (si == SIGINT) {
+        printf("shit\n");
         running = 0;
     }
 }
 
 int main(int argc, char *argv[]) {
-
-    signal(SIGINT, ctrl_c_handler);
+    
 
     char *server_ip = argv[1];
 
     if (argc != 2) {
-        printf("To specify a server's IP Address, please run: %s <server_ip> . Attempting to connect anyways...\n", argv[0]);
+        printf("To specify a server's IP Address, please run: %s <server_ip>. connecting to 127.0.0.1\n", argv[0]);
         server_ip = NULL;
     }
 
@@ -41,51 +43,71 @@ int main(int argc, char *argv[]) {
     int sock_fd = get_server_sock_or_die(server_ip);
     send(sock_fd, name, strlen(name), 0);
     memset(name, 0, MAX_NAME);
-
     printf("\n");
-    char msg_buffer[MAX_MSG];
-    int msg_b_size = sizeof msg_buffer;
 
-    char recv_msg_buffer[MAX_MSG];
-    int recv_b_size = sizeof recv_msg_buffer;
+    // ncurses initialization
+    initscr(); 
+    curs_set(1); // Show cursor
+
+    WINDOW * output_window = newwin(LINES - 2, COLS, 0, 0);
+    scrollok(output_window, TRUE);
+    wrefresh(output_window);
+
+    WINDOW * input_window = newwin(1, COLS, LINES - 1, 0);
+    keypad(input_window, TRUE);
+    wprintw(input_window, "enter your message: ");
+    wrefresh(input_window);
     
-    struct pollfd watch_list[1];
-    watch_list[0].fd = sock_fd;
-    watch_list[0].events = POLLIN;
+    signal(SIGINT, handle_ctrl_c);
 
     if (!fork()) {
+        char msg_buffer[MAX_MSG];
+        int msg_b_size = sizeof msg_buffer;
+
         while(running) {
-            printf("enter your message: ");
-            if (fgets(msg_buffer, msg_b_size, stdin)) {
-                int bytes_sent = send(sock_fd, msg_buffer, strlen(msg_buffer), 0);
-                memset(msg_buffer, 0, sizeof msg_buffer);
-                __fpurge(stdin);
-            }
+            wgetnstr(input_window, msg_buffer, msg_b_size);
+            
+            wclrtoeol(input_window);
+            wprintw(input_window, "enter your message: ");
+            wrefresh(input_window);
+
+
+            int bytes_sent = send(sock_fd, msg_buffer, strlen(msg_buffer), 0);
+            
+            memset(msg_buffer, 0, strlen(msg_buffer));
         }
+        printf("end of child\n");
+        close(sock_fd);
         exit(0);
     }
 
-    while(running) {
-        int to_recv = poll(watch_list, 1, 1000);
-        
-        if (to_recv) {
-            if (watch_list[0].revents & POLLHUP) {
-                printf("\nThe server closed connection\n");
-                break;
-            }
+    char recv_msg_buffer[MAX_MSG];
+    int recv_b_size = sizeof recv_msg_buffer;
 
-            if (watch_list[0].revents & POLLIN) {
-                int bytes_received = recv(sock_fd, recv_msg_buffer, recv_b_size, 0);
-                if (bytes_received <= 0) {
-                    printf("\nThe server closed connection\n");
-                    break;
-                }
-                printf("%s", recv_msg_buffer);
-                memset(recv_msg_buffer, 0, sizeof recv_msg_buffer);
-                continue;
-            }
+    int row = 1;
+    while(running) {
+        int bytes_received = recv(sock_fd, recv_msg_buffer, recv_b_size, 0);
+
+        if (bytes_received <= 0) {
+            printf("\nThe server closed connection\n");
+            running = 0;
+            break;
         }
+        recv_msg_buffer[bytes_received] = 0;
+
+        mvwprintw(output_window, row, 1, "%s", recv_msg_buffer);
+        row += 1;
+        wrefresh(output_window);
+
+        wmove(input_window, 1, 1);
+        wrefresh(input_window);
+
+        memset(recv_msg_buffer, 0, strlen(recv_msg_buffer));
     }
+    delwin(input_window);
+    delwin(output_window);
+    endwin();
+    printf("end of parent\n");
     close(sock_fd);
     return 0;
 }
