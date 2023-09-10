@@ -34,6 +34,8 @@ void append_str(str_din_arr * da, char * str, int len);
 
 void pop_str(str_din_arr * da, int idx);
 
+int index_of_str(str_din_arr * da, const char * str);
+
 void print_strdinarr(str_din_arr da);
 
 #endif

@@ -26,17 +26,21 @@ int main(void) {
         }
         if (senders->len > 0) {
             for (int i = 0; i < senders->len; i++) {
+                int senders_idx = index_of_fd(test_room, senders->arr[i]);
                 char msg_buff[200];
                 int bytes = recv(senders->arr[i], msg_buff, sizeof msg_buff, 0);
                 
                 if (bytes <= 0) {
                     close(senders->arr[i]);
                     remove_con(test_room, senders->arr[i]);
-                    printf("closed connection from %d\n", senders->arr[i]);
+                    char server_msg[100];
+                    snprintf(server_msg, sizeof server_msg, "%s has left the channel from socket %d\n", test_room->names->arr[senders_idx], senders->arr[i]);
+                    pop_str(test_room->names, senders_idx);
+                    spread_msg(test_room, server_msg, "server", listen_socket);
                     continue;
                 }
                 
-                spread_msg(test_room, msg_buff, listen_socket, senders->arr[i]);
+                spread_msg(test_room, msg_buff, test_room->names->arr[senders_idx], senders->arr[i]);
 
                 memset(msg_buff, 0, sizeof(msg_buff));
             }

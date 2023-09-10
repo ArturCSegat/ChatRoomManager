@@ -114,7 +114,7 @@ int recv_conns(struct chatroom * cr, int listener, din_arr * senders) {
 
                     char server_msg[100];
                     snprintf(server_msg, sizeof server_msg, "%s has joined the channel from socket %d\n", cr->names->arr[cr->names->len - 1], new_fd);
-                    spread_msg(cr, server_msg, listener, listener); // the order is reversed so the mesage is not sent to new_fd but is sent from listener
+                    spread_msg(cr, server_msg, "server", listener);
 
                     memset(name_buff, 0, name_bytes);
                 }
@@ -127,26 +127,32 @@ int recv_conns(struct chatroom * cr, int listener, din_arr * senders) {
     return 0;
 }
 
-void spread_msg(struct chatroom * cr, const char * msg, int server_fd, int sender_fd) {
-    int senders_idx;
-    for (int i = 0; i < cr->fds_len; i++) {
-        if (cr->fds[i].fd == sender_fd) {
-            senders_idx = i;
-            break;
-        }
-    }
-    
+void spread_msg(struct chatroom * cr, const char * msg, const char * sayer_name, int sender_fd) {
     char full_message[sizeof(msg) + 100];
-    snprintf(full_message, sizeof full_message, "%s says: %s\n", cr->names->arr[senders_idx], msg);
+    snprintf(full_message, sizeof full_message, "%s says: %s\n", sayer_name, msg);
 
     printf("spreading message: %s\n", full_message);
-    for (int j = 0; j < cr->fds_len; j++) {
-        if (cr->fds[j].fd == server_fd){
+    for (int j = 1; j < cr->fds_len; j++) {
+        if (cr->fds[j].fd == sender_fd) {
             continue;
         }
+
         if (send(cr->fds[j].fd, full_message, strlen(full_message), 0) == - 1) {
             printf("error on sending to %d\n", cr->fds[j].fd);
             perror("send");
         }
     }
+}
+
+
+int index_of_fd(struct chatroom * cr, int fd) {
+    int idx = -1;
+    for (int i = 0; i < cr->fds_len; i++) {
+        if (cr->fds[i].fd == fd) {
+            idx = i;
+            break;
+        }
+    }    
+    
+    return idx;
 }

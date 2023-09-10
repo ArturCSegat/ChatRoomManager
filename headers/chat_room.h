@@ -28,6 +28,8 @@ void print_listners(struct chatroom cr);
 // will also accept any new connections to the listenr
 int recv_conns(struct chatroom * cr, int listener, din_arr * senders);
 
-void spread_msg(struct chatroom * cr, const char * msg, int server_fd, int sender_fd);
+void spread_msg(struct chatroom * cr, const char * msg, const char * sayer_name, int sender_fd);
+
+int index_of_fd(struct chatroom * cr, int fd);
 
 #endif

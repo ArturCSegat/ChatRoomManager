@@ -14,14 +14,7 @@
 # define MAX_NAME 20
 # define MAX_MSG 200
 
-static volatile sig_atomic_t running = 1;
-
-void handle_ctrl_c(int si) {
-    if (si == SIGINT) {
-        printf("shit\n");
-        running = 0;
-    }
-}
+int running = 1;
 
 int main(int argc, char *argv[]) {
     
@@ -58,14 +51,17 @@ int main(int argc, char *argv[]) {
     wprintw(input_window, "enter your message: ");
     wrefresh(input_window);
     
-    signal(SIGINT, handle_ctrl_c);
-
     if (!fork()) {
         char msg_buffer[MAX_MSG];
         int msg_b_size = sizeof msg_buffer;
 
         while(running) {
             wgetnstr(input_window, msg_buffer, msg_b_size);
+
+            if (!strcmp(msg_buffer, ":quit")) {
+                running = 0;
+                break;
+            }
             
             wclrtoeol(input_window);
             wprintw(input_window, "enter your message: ");

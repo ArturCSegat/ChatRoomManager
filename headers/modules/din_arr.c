@@ -100,3 +100,15 @@ void print_strdinarr(str_din_arr da) {
     }
     printf("]\n");
 }
+
+int index_of_str(str_din_arr * da, const char * str) {
+    int idx = -1;
+    for (int i = 0; i < da->len; i++) {
+        if (!strncmp(da->arr[i], str, strlen(str))) {
+            idx = i;
+            break;
+        }
+    }    
+    
+    return idx;
+}
