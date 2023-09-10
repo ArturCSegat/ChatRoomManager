@@ -40,7 +40,7 @@ int main(void) {
                     continue;
                 }
                 
-                spread_msg(test_room, msg_buff, test_room->names->arr[senders_idx], senders->arr[i]);
+                spread_msg(test_room, msg_buff, test_room->names->arr[senders_idx], listen_socket);
 
                 memset(msg_buff, 0, sizeof(msg_buff));
             }

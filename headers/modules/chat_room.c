@@ -128,7 +128,7 @@ int recv_conns(struct chatroom * cr, int listener, din_arr * senders) {
 }
 
 void spread_msg(struct chatroom * cr, const char * msg, const char * sayer_name, int sender_fd) {
-    char full_message[sizeof(msg) + 100];
+    char full_message[sizeof(msg) + sizeof(sayer_name) + 100];
     snprintf(full_message, sizeof full_message, "%s says: %s\n", sayer_name, msg);
 
     printf("spreading message: %s\n", full_message);
