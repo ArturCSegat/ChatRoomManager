@@ -10,6 +10,7 @@ struct chatroom * chatroom_builder(int id, char name[50]) {
     struct chatroom * cr = (struct chatroom * )malloc(sizeof(struct chatroom));
     
     cr->id = id;
+    memset(cr->name, 0, sizeof(cr->name));
     for (int i = 0; i < strlen(name); i++) {
         cr->name[i] = name[i];
     }
@@ -131,7 +132,7 @@ void spread_msg(struct chatroom * cr, const char * msg, const char * sayer_name,
     char full_message[sizeof(msg) + sizeof(sayer_name) + 100];
     snprintf(full_message, sizeof full_message, "%s says: %s\n", sayer_name, msg);
 
-    printf("spreading message: %s\n", full_message);
+    printf("spreading message: %s on %s\n", full_message, cr->name);
     for (int j = 1; j < cr->fds_len; j++) {
         if (cr->fds[j].fd == sender_fd) {
             continue;
@@ -139,7 +140,7 @@ void spread_msg(struct chatroom * cr, const char * msg, const char * sayer_name,
 
         if (send(cr->fds[j].fd, full_message, strlen(full_message), 0) == - 1) {
             printf("error on sending to %d\n", cr->fds[j].fd);
-            perror("send");
+           perror("send");
         }
     }
 }

@@ -58,6 +58,9 @@ str_din_arr * new_str_din_arr(int cap){
 }
 
 void free_str_din_arr(str_din_arr * da) {
+    for (int i = 0; i < da->cap; i++) {
+        free(da->arr[i]);
+    }
     free(da->arr);
     free(da);
 }
@@ -91,6 +94,7 @@ void pop_str(str_din_arr * da, int idx) {
         da->arr[i+1] = temp; 
     }
     da->len--;
+    // memory is freed in free_str_din_arr()
 }
 
 void print_strdinarr(str_din_arr da) {
