@@ -127,6 +127,7 @@ void spread_msg(struct chatroom * cr, const char * msg, const char * sayer_name,
     if (!strcmp(cr->name, "Room Picker")){return;} // dont want to send messages in the lobby channel
     
     char full_message[sizeof(msg) + sizeof(sayer_name) + 100];
+    memset(full_message, 0, sizeof full_message);
     snprintf(full_message, sizeof full_message, "%s says: %s\n", sayer_name, msg);
 
     printf("spreading message: %s on %s\n", full_message, cr->name);

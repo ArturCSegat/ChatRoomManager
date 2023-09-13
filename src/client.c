@@ -1,8 +1,10 @@
+#include <stdatomic.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <sys/socket.h>
+#include <sys/mman.h>
 #include <poll.h>
 #include <stdio_ext.h>
 #include <signal.h>
@@ -13,7 +15,6 @@
 # define MAX_NAME 20
 # define MAX_MSG 200
 
-int running = 1;
 
 int main(int argc, char *argv[]) {
     
@@ -54,19 +55,24 @@ int main(int argc, char *argv[]) {
     int msg_b_size = sizeof msg_buffer;
     char recv_msg_buffer[MAX_MSG];
     int recv_b_size = sizeof recv_msg_buffer;
-    int row = 1;
+
+    int *row = mmap(0, sizeof *row, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+    *row = 0;
+    int *running = mmap(0, sizeof *running, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+    *running = 1;
 
     if (!fork()) {
 
-        while(running) {
+        while(*running) {
             wgetnstr(input_window, msg_buffer, msg_b_size);
 
             if (!strcmp(msg_buffer, ":quit")) {
-                running = 0;
+                *running = 0;
+                int bytes_sent = send(sock_fd, ":leave", strlen(":leave"), 0); // makes sure the servers removes the user from the channel
                 break;
             }
             if (!strncmp(msg_buffer, ":new ", 5) || !strncmp(msg_buffer, ":join ", 6) || !strncmp(msg_buffer, ":leave", 6)) {
-                row = 1;
+                *row = 1;
                 wclear(output_window);
                 wrefresh(output_window);
             }
@@ -85,24 +91,24 @@ int main(int argc, char *argv[]) {
         exit(0);
     }
 
-    while(running) {
+    while(*running) {
         int bytes_received = recv(sock_fd, recv_msg_buffer, recv_b_size, 0);
 
         if (bytes_received <= 0) {
             printf("\nThe server closed connection\n");
-            running = 0;
+            *running = 0;
             break;
         }
         recv_msg_buffer[bytes_received] = 0;
 
-        mvwprintw(output_window, row, 1, "%s", recv_msg_buffer);
-        row += 1;
+        mvwprintw(output_window, *row, 1, "%s", recv_msg_buffer);
+        *row += 1;
         wrefresh(output_window);
 
         wmove(input_window, 1, 1);
         wrefresh(input_window);
-
-        memset(recv_msg_buffer, 0, strlen(recv_msg_buffer));
+        
+        memset(recv_msg_buffer, 0, sizeof recv_msg_buffer);
     }
     delwin(input_window);
     delwin(output_window);

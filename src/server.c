@@ -84,7 +84,6 @@ int main(void) {
                     int senders_idx = index_of_fd(rooms.rooms[i], senders->arr[j]);
                     char msg_buff[200];
                     int bytes = recv(senders->arr[j], msg_buff, sizeof msg_buff, 0);
-                    msg_buff[bytes] = 0;
 
                     if (bytes <= 0) {
                         close(senders->arr[j]);
@@ -95,6 +94,8 @@ int main(void) {
                         spread_msg(rooms.rooms[i], server_msg, "server", listen_socket);
                         continue;
                     }
+
+                    msg_buff[bytes] = 0;
                     
                     if (!strncmp(msg_buff, ":new ", 5)) {
                         char chan_name[50];   
