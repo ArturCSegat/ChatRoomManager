@@ -74,7 +74,6 @@ int main(void) {
 
             if (i == 0) {
                 for (int j = 0; j < new_connections->len; j++) {
-                    printf("opa\n");
                     list_rooms(&rooms,  new_connections->arr[j]);
                 } 
             }
@@ -132,12 +131,27 @@ int main(void) {
                             send(senders->arr[j], m, strlen(m), 0);
                             continue;
                         }
-
-                        add_con(rooms.rooms[room_idx], senders->arr[j]);
-                        append_str(rooms.rooms[room_idx]->names, rooms.rooms[i]->names->arr[senders_idx], strlen(rooms.rooms[i]->names->arr[senders_idx]));
+                        struct chatroom * dest_room = rooms.rooms[room_idx];
+                    
+                        add_con(dest_room, senders->arr[j]);
+                        append_str(dest_room->names, rooms.rooms[i]->names->arr[senders_idx],
+                                   strlen(rooms.rooms[i]->names->arr[senders_idx]));
                         remove_con(rooms.rooms[i], senders->arr[j]);
                         pop_str(rooms.rooms[i]->names, senders_idx);
                         pop(senders, i);
+                        
+                        // add_con(rooms.rooms[room_idx], senders->arr[j]);
+                        // append_str(rooms.rooms[room_idx]->names, rooms.rooms[i]->names->arr[senders_idx], 
+                        //          strlen(rooms.rooms[i]->names->arr[senders_idx]));
+                        // remove_con(rooms.rooms[i], senders->arr[j]);
+                        // pop_str(rooms.rooms[i]->names, senders_idx);
+                        // pop(senders, i);
+
+
+                        char server_msg[100];
+                        snprintf(server_msg, sizeof server_msg, "%s has joined the channel from socket %d\n",
+                                 dest_room->names->arr[dest_room->names->len - 1], senders->arr[j]);
+                        spread_msg(dest_room, server_msg, "server", listen_socket);
                         
                         memset(chan_name, 0, sizeof chan_name);
                         continue;
@@ -151,7 +165,6 @@ int main(void) {
                         continue;
                     }
 
-                    printf("voce esta no canal %s gamer\n", rooms.rooms[i]->name);
                     spread_msg(rooms.rooms[i], msg_buff, rooms.rooms[i]->names->arr[senders_idx], listen_socket);
 
                     memset(msg_buff, 0, sizeof(msg_buff));
@@ -163,7 +176,6 @@ int main(void) {
     }
     
     for (int i = 0; i < rooms.len; i++) {
-        printf("lolz\n");
         free_chat_room(rooms.rooms[i]);
     }
     free(rooms.rooms);

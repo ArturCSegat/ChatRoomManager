@@ -106,12 +106,6 @@ int recv_conns(struct chatroom * cr, int listener, din_arr * senders, din_arr * 
                     append_str(cr->names, name_buff, name_bytes);
 
                     memset(name_buff, 0, name_bytes);
-                    
-                    char server_msg[100];
-                    snprintf(server_msg, sizeof server_msg, "%s has joined the channel from socket %d\n", cr->names->arr[cr->names->len - 1], new_fd);
-                    spread_msg(cr, server_msg, "server", listener);
-
-                    
                 }
                 continue;
             }
@@ -123,9 +117,6 @@ int recv_conns(struct chatroom * cr, int listener, din_arr * senders, din_arr * 
 }
 
 void spread_msg(struct chatroom * cr, const char * msg, const char * sayer_name, int sender_fd) {
-
-    if (!strcmp(cr->name, "Room Picker")){return;} // dont want to send messages in the lobby channel
-    
     char full_message[sizeof(msg) + sizeof(sayer_name) + 100];
     memset(full_message, 0, sizeof full_message);
     snprintf(full_message, sizeof full_message, "%s says: %s\n", sayer_name, msg);
