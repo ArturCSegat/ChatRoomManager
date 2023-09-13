@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/socket.h>
 #include <uchar.h>
 #include <unistd.h>
 #include <errno.h>
@@ -35,6 +36,15 @@ void add_room(rooms_arr * rooms, struct chatroom * room, int listener) {
     rooms->len += 1;
 }
 
+void list_rooms(rooms_arr * rooms, int to_fd) {
+    char * m2 = "type: - :join room name - to join a room or - :new room name - to create a new one\n";
+    send(to_fd, m2, strlen(m2), 0);
+    for (int i = 1; i < rooms->len; i++){
+        char m[60];
+        sprintf(m, "room: %s\n", rooms->rooms[i]->name); 
+        send(to_fd, m, strlen(m), 0);
+    }
+}
 
 int main(void) {
     signal(SIGINT, stop);
@@ -55,11 +65,20 @@ int main(void) {
         for (int i = 0; i < rooms.len; i++) {
             printf("%s\n", rooms.rooms[i]->name);
             din_arr * senders = new_din_arr(3);
-            if (recv_conns(rooms.rooms[i], listen_socket, senders) != 0) {
+            din_arr * new_connections = new_din_arr(3);
+            if (recv_conns(rooms.rooms[i], listen_socket, senders, new_connections) != 0) {
                 printf("error happend when handling new connections\n");
                 printf("errno (may not be related: %d", errno);
                 perror("may not be related");
             }
+
+            if (i == 0) {
+                for (int j = 0; j < new_connections->len; j++) {
+                    printf("opa\n");
+                    list_rooms(&rooms,  new_connections->arr[j]);
+                } 
+            }
+            
             if (senders->len > 0) {
                 for (int j = 0; j < senders->len; j++) {
                     int senders_idx = index_of_fd(rooms.rooms[i], senders->arr[j]);
@@ -123,10 +142,11 @@ int main(void) {
                         continue;
                     }
 
-                    if (!strncmp(msg_buff, ":leave ", 7)) {
+                    if (!strncmp(msg_buff, ":leave", 6)) {
                         remove_con(rooms.rooms[i], senders->arr[j]);
                         pop_str(rooms.rooms[i]->names, senders_idx);
                         pop(senders, i);
+                        list_rooms(&rooms, senders->arr[j]);
                         continue;
                     }
 
@@ -137,6 +157,7 @@ int main(void) {
                 }
             }
             free_din_arr(senders);
+            free_din_arr(new_connections);
         }
     }
     

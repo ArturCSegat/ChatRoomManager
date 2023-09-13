@@ -1,4 +1,3 @@
-#include <curses.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -50,10 +49,14 @@ int main(int argc, char *argv[]) {
     keypad(input_window, TRUE);
     wprintw(input_window, "enter your message: ");
     wrefresh(input_window);
-    
+
+    char msg_buffer[MAX_MSG];
+    int msg_b_size = sizeof msg_buffer;
+    char recv_msg_buffer[MAX_MSG];
+    int recv_b_size = sizeof recv_msg_buffer;
+    int row = 1;
+
     if (!fork()) {
-        char msg_buffer[MAX_MSG];
-        int msg_b_size = sizeof msg_buffer;
 
         while(running) {
             wgetnstr(input_window, msg_buffer, msg_b_size);
@@ -61,6 +64,11 @@ int main(int argc, char *argv[]) {
             if (!strcmp(msg_buffer, ":quit")) {
                 running = 0;
                 break;
+            }
+            if (!strncmp(msg_buffer, ":new ", 5) || !strncmp(msg_buffer, ":join ", 6) || !strncmp(msg_buffer, ":leave", 6)) {
+                row = 1;
+                wclear(output_window);
+                wrefresh(output_window);
             }
             
             wclrtoeol(input_window);
@@ -77,10 +85,6 @@ int main(int argc, char *argv[]) {
         exit(0);
     }
 
-    char recv_msg_buffer[MAX_MSG];
-    int recv_b_size = sizeof recv_msg_buffer;
-
-    int row = 1;
     while(running) {
         int bytes_received = recv(sock_fd, recv_msg_buffer, recv_b_size, 0);
 
