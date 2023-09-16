@@ -83,7 +83,7 @@ int main(void) {
                     int senders_idx = index_of_fd(rooms.rooms[i], senders->arr[j]);
                     char msg_buff[200];
                     int bytes = recv(senders->arr[j], msg_buff, sizeof msg_buff, 0);
-
+                    
                     if (bytes <= 0) {
                         close(senders->arr[j]);
                         remove_con(rooms.rooms[i], senders->arr[j]);
@@ -151,6 +151,7 @@ int main(void) {
                         char server_msg[100];
                         snprintf(server_msg, sizeof server_msg, "%s has joined the channel from socket %d\n",
                                  dest_room->names->arr[dest_room->names->len - 1], senders->arr[j]);
+
                         spread_msg(dest_room, server_msg, "server", listen_socket);
                         
                         memset(chan_name, 0, sizeof chan_name);

@@ -117,6 +117,11 @@ int recv_conns(struct chatroom * cr, int listener, din_arr * senders, din_arr * 
 }
 
 void spread_msg(struct chatroom * cr, const char * msg, const char * sayer_name, int sender_fd) {
+    if (cr->id == 0) {
+        // boched fixed to not send messages in the lobby
+        return;
+    } 
+    
     char full_message[sizeof(msg) + sizeof(sayer_name) + 100];
     memset(full_message, 0, sizeof full_message);
     snprintf(full_message, sizeof full_message, "%s says: %s\n", sayer_name, msg);

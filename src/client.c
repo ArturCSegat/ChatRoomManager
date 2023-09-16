@@ -53,8 +53,6 @@ int handle_stdin_input(void * thread_data) {
 }
 
 int main(int argc, char *argv[]) {
-    
-
     char *server_ip = argv[1];
 
     if (argc != 2) {
